@@ -1,21 +1,23 @@
 # 废都物语 · 网页版
 
-用 [EasyRPG Player](https://easyrpg.org/) 的 Web 版在浏览器里运行《废都物语》，通过 GitHub Pages 发布。
+用 [EasyRPG Player](https://easyrpg.org/) 的 Web 版在浏览器里运行《Ruina 废都物语》ver1.21 个人汉化版，通过 GitHub Pages 发布。
 参考：[EasyRPG Player for the Web](https://wiki.easyrpg.org/development/player/web)
 
 ## 目录结构
 
 ```
 web/                     ← 整个网站（发布到 GitHub Pages）
-├── index.html           ← EasyRPG Web 播放器（需自行放入）
+├── index.html           ← EasyRPG Web 播放器（CI 构建版，2026-09-20）
 ├── index.js             ← 〃
 ├── index.wasm           ← 〃
 └── games/
     └── default/         ← 废都物语的游戏文件放这里（打开首页即运行）
         ├── RPG_RT.ldb
         ├── RPG_RT.lmt
-        ├── RPG_RT.ini
+        ├── RPG_RT.ini       ← 已含 [EasyRPG] Encoding=936
         ├── Map0001.lmu …
+        ├── Font/            ← 汉化版附带的专用字体
+        ├── easyrpg.soundfont  ← MIDI 音色库
         ├── CharSet/ ChipSet/ Music/ Sound/ Picture/ …
         └── index.json   ← 由 gencache 生成（部署时自动生成）
 tools/gencache.py        ← gencache 的 Python 版（输出与官方 C++ 版一致）
@@ -23,6 +25,12 @@ tools/gencache.py        ← gencache 的 Python 版（输出与官方 C++ 版�
 ```
 
 ## 上线步骤
+
+播放器和游戏文件都已放入本分支（去掉了网页版用不到的 `RPG_RT.exe`、`RPG_RT.exe.bak` 和 `Thumbs.db`），
+只需完成第 3、4 步。以后更换游戏或升级播放器时参照第 1、2 步。
+
+> 注意：游戏素材的文件名看起来像乱码（如 `System/攑搒僔僗僥儉.xyz`），这是正常的——
+> 它们是日文原名按 GBK 读出来的样子，和数据库按 936 编码解码后的引用完全一致，**不要改名**。
 
 1. **放入播放器**：从 <https://easyrpg.org/player/downloads/> 下载 Web 版播放器压缩包，
    把其中的 `index.html`、`index.js`、`index.wasm` 解压到 `web/` 目录。
