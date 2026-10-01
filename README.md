@@ -38,7 +38,7 @@ tools/gencache.py        ← gencache 的 Python 版（输出与官方 C++ 版�
    然后删除 `web/games/default/.gitkeep`。
    - 不需要 `RPG_RT.exe`、`Harmony.dll` 等 Windows 程序文件，可以不上传。
    - 如果游戏依赖 RTP（运行时素材包），需要把用到的 RTP 素材一并复制进游戏目录，网页版不会自动加载 RTP。
-   - 中文文件名必须是正确的 UTF-8 名称。若解压后文件名是乱码，请用支持指定编码的工具（如 7-Zip、Bandizip，选 GBK/936）重新解压。
+   - 文件名必须和游戏数据库里的引用一致（按 `RPG_RT.ini` 里的 Encoding 解码后）。换游戏时，若读不到素材，多半是解压工具用错了编码。
 3. **开启 Pages**：仓库 Settings → Pages → Source 选 **GitHub Actions**。
 4. **合并到 `main`**：推送到 `main` 后工作流会为 `web/games/` 下每个游戏生成 `index.json` 并部署。
    也可以在 Actions 页手动运行 “Deploy web player”。
