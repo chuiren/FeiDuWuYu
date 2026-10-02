@@ -42,6 +42,9 @@ jobs:
             python3 tools/gencache.py "$dir"
           done
 
+      - name: Generate offline manifest
+        run: python3 tools/gen_offline_manifest.py web --version "${{ github.sha }}"
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

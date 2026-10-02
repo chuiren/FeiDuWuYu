@@ -21,7 +21,8 @@ web/                     ← 整个网站（发布到 GitHub Pages）
         ├── CharSet/ ChipSet/ Music/ Sound/ Picture/ …
         └── index.json   ← 由 gencache 生成（部署时自动生成）
 tools/gencache.py        ← gencache 的 Python 版（输出与官方 C++ 版一致）
-.github/workflows/deploy-web.yml  ← 自动生成 index.json 并部署到 Pages
+tools/gen_offline_manifest.py  ← 生成离线清单 offline-manifest.json（部署时运行）
+.github/workflows/deploy-web.yml  ← 自动生成 index.json 和离线清单并部署到 Pages
 ```
 
 ## 上线步骤
@@ -44,6 +45,18 @@ tools/gencache.py        ← gencache 的 Python 版（输出与官方 C++ 版�
    也可以在 Actions 页手动运行 “Deploy web player”。
 
 > 单个文件不能超过 100 MB（GitHub 限制），整个站点建议控制在 1 GB 以内。
+
+## 离线游玩 / 存档备份 / 虚拟键盘
+
+- **离线**：第一次联网打开时会自动下载整个游戏（约 41 MB）并校验，完成后断网也能玩。
+  iPhone 上可用 Safari「添加到主屏幕」当作 App 使用。注意主屏幕 App 和 Safari 的存储是分开的，
+  添加后需要联网打开一次。每次重新部署后会自动只下载有变化的文件。
+- **💾 导出存档**：把所有存档打包成 `ruina-save-日期.zip`，可存到「文件」App。
+  **📂 导入存档**：选择之前导出的 zip（或单个 `.lsd`），覆盖前会确认，导入后游戏自动重新载入。
+- **🎮 虚拟键盘**：屏幕上的 Shift / Ctrl / Alt / Esc / Tab / Enter / Space / 方向键 / Z X C A，
+  可多指同时按（例如按住 Shift 再点 Z）。
+
+技术细节和测试情况见 [HANDOFF.md](HANDOFF.md)。
 
 ## 本地预览
 

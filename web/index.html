@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EasyRPG Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Ruina 废都物语</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="废都物语">
   <style>
     :root {
       --color-gray: hsl(0, 0%, 55%);
@@ -120,6 +128,7 @@
       opacity: 0.4;
     }
   </style>
+  <link rel="stylesheet" href="addons.css">
 </head>
 <body>
   <div id="controls">
@@ -150,6 +159,10 @@
   </div>
 
 <script type="text/javascript" src="index.js"></script>
+<script src="offline.js"></script>
+<script src="ruina-zip.js"></script>
+<script src="saves.js"></script>
+<script src="console.js"></script>
 
 <script>
 const hasTouchscreen = window.matchMedia('(hover: none), (pointer: coarse)').matches;
@@ -161,7 +174,9 @@ let easyrpgPlayer;
 let lastTouchedId;
 
 // Launch the Player and configure it
-window.addEventListener('load', (event) => {
+// (waits for offline preparation, see offline.js)
+window.addEventListener('load', async (event) => {
+    if (window.RuinaOffline) await RuinaOffline.beforeStart();
     createEasyRpgPlayer({
       game: undefined,
       saveFs: undefined
@@ -170,6 +185,8 @@ window.addEventListener('load', (event) => {
       easyrpgPlayer = Module;
       easyrpgPlayer.initApi();
       canvas.focus();
+      window.easyrpgPlayer = Module;
+      window.dispatchEvent(new CustomEvent('easyrpg-ready', { detail: Module }));
 
       // Custom code here
     });
@@ -194,8 +211,8 @@ document.querySelector('#controls-fullscreen').addEventListener('click', () => {
  * @param {string} key Key to simulate
  */
 function simulateKeyboardEvent(eventType, key) {
-  const event = new Event(eventType, { bubbles: true });
-  event.code = key;
+  // A real KeyboardEvent: SDL's lock-key listener calls getModifierState()
+  const event = new KeyboardEvent(eventType, { bubbles: true, code: key, key: key });
 
   canvas.dispatchEvent(event);
 }
