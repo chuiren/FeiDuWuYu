@@ -37,6 +37,22 @@ tools/
 Deploy workflow: checkout → gencache for each game → `gen_offline_manifest.py web --version ${{ github.sha }}`
 → upload `web/` → deploy.
 
+## Engine version: `games/default/EasyRPG.ini` (Shift fix)
+
+```
+[Game]
+Engine=rpg2kv150
+```
+
+The web build of EasyRPG cannot read `RPG_RT.exe` (the exe reader is compiled out for
+Emscripten). It guesses the engine from the data and, for Ruina, picked RPG Maker 2000
+**before v1.50** ("Assuming older engine … MajorUpdated=false"). For those versions EasyRPG
+never checks Shift in "Key Input Processing" events (`CommandKeyInputProc`; Shift support
+arrived with v1.50). Ruina opens its submenu that way, so Shift did nothing, on any device.
+Ruina's Shift submenu itself shows the game targets v1.50+. With this file the log reads
+`MajorUpdated=true`, and Shift on the map opens the submenu (交谈 / 情报 / 设定的变更).
+Verified with a real keyboard and with the console. Without the file, the same run does nothing.
+
 ## Changes to index.html (the only edits to the stock EasyRPG files)
 
 - `<head>`: title, viewport-fit=cover, manifest link, icons, apple-mobile-web-app metas, `addons.css`.
@@ -118,10 +134,15 @@ document-level SDL listener calls `event.getModifierState()`.
 - Pointer Events: keydown on `pointerdown` (with pointer capture), keyup on
   `pointerup`/`pointercancel`/`lostpointercapture`. A key is counted per pointer, so
   multi-touch works and a key held by two fingers releases only when both lift.
-- Everything is released on console close, window `blur`, `pagehide` and `visibilitychange`
-  (hidden).
+- Minimum hold of 100 ms: EasyRPG samples key state once per frame, so an instant tap
+  (keydown + keyup inside one frame) was missed. A key lifted sooner keeps its keyup delayed.
+  A modifier released meanwhile waits for pending keys, keeping the order Shift↓ Z↓ Z↑ Shift↑.
+  A re-press during the delay keeps the key down without a second keydown. (Found when an
+  instant console tap on Shift didn't open the submenu while a 250 ms press did.)
+- Everything is released at once on console close, window `blur`, `pagehide` and
+  `visibilitychange` (hidden).
 - The stock dpad/apad are hidden while the console is open and restored afterwards.
-- `window.RuinaInput` = `{press, release, releaseAll, held, keys}` for debugging.
+- `window.RuinaInput` = `{press, release, releaseAll, held, down, keys}` for debugging.
 
 ## Testing done (headless Chromium + Playwright, local server, CI-like build)
 

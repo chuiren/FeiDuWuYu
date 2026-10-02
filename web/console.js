@@ -12,6 +12,10 @@
  * once with multi-touch (hold Shift, tap Z). All held keys are released when
  * the console closes, the page is hidden or the window loses focus, so a
  * modifier can never stay stuck.
+ *
+ * EasyRPG samples the keyboard state once per frame, so a tap shorter than a
+ * frame would be missed. A key therefore stays down for at least
+ * MIN_HOLD_MS; an earlier release is delayed until then.
  */
 (function () {
   'use strict';
@@ -39,13 +43,17 @@
     right: [['Shift', 'Ctrl', 'Alt'], ['Esc', 'Tab', 'Enter'], ['Z', 'X', 'C', 'A'], ['Space']],
   };
 
+  const MIN_HOLD_MS = 100;
+
   const canvas = document.getElementById('canvas');
   const held = new Map();      // key id -> number of pointers holding it
+  const down = new Map();      // key id -> time of keydown (down for the game)
+  const pending = new Map();   // key id -> { timer, deadline } of a delayed keyup
   const pointers = new Map();  // pointerId -> { id, node }
 
   function modifierState() {
     const state = { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false };
-    for (const id of held.keys()) {
+    for (const id of down.keys()) {
       if (KEYS[id].modifier) state[KEYS[id].modifier] = true;
     }
     return state;
@@ -65,37 +73,57 @@
     canvas.dispatchEvent(event);
   }
 
+  function keyUp(id) {
+    if (!down.has(id)) return;
+    down.delete(id);  // delete first so the modifier flags exclude it
+    dispatch('keyup', id);
+  }
+
   function press(id) {
-    const count = held.get(id) || 0;
-    if (count === 0) {
-      held.set(id, 1);   // set first so the modifier flags include this key
+    held.set(id, (held.get(id) || 0) + 1);
+    if (pending.has(id)) {
+      // Pressed again before the delayed keyup: it simply stays down
+      clearTimeout(pending.get(id).timer);
+      pending.delete(id);
+    } else if (!down.has(id)) {
+      down.set(id, performance.now());  // set first so the modifier flags include it
       dispatch('keydown', id);
-    } else {
-      held.set(id, count + 1);
     }
   }
 
   function release(id) {
     const count = held.get(id) || 0;
-    if (count <= 1) {
-      if (count === 1) {
-        held.delete(id);  // delete first so the modifier flags exclude it
-        dispatch('keyup', id);
-      }
-    } else {
+    if (count > 1) {
       held.set(id, count - 1);
+      return;
+    }
+    if (count === 0) return;
+    held.delete(id);
+
+    const now = performance.now();
+    let deadline = (down.get(id) ?? now) + MIN_HOLD_MS;
+    // A modifier must not go up before a key still waiting for its keyup
+    // (hold Shift, quick tap Z, lift Shift: Z goes up first)
+    if (KEYS[id].modifier) {
+      for (const p of pending.values()) deadline = Math.max(deadline, p.deadline);
+    }
+    if (deadline <= now) {
+      keyUp(id);
+    } else {
+      const timer = setTimeout(() => { pending.delete(id); keyUp(id); }, deadline - now);
+      pending.set(id, { timer, deadline });
     }
   }
 
   function releaseAll() {
     for (const { node } of pointers.values()) node.classList.remove('active');
     pointers.clear();
+    held.clear();
+    for (const p of pending.values()) clearTimeout(p.timer);
+    pending.clear();
     // Release normal keys before modifiers
-    const ids = [...held.keys()].sort((a, b) => !!KEYS[a].modifier - !!KEYS[b].modifier);
-    for (const id of ids) {
-      held.delete(id);
-      dispatch('keyup', id);
-    }
+    const ids = [...down.keys()].sort((a, b) => !!KEYS[a].modifier - !!KEYS[b].modifier);
+    for (const id of ids) keyUp(id);
   }
 
   function endPointer(event) {
@@ -172,5 +200,5 @@
   window.addEventListener('pagehide', releaseAll);
   document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
 
-  window.RuinaInput = { press, release, releaseAll, held, keys: KEYS };
+  window.RuinaInput = { press, release, releaseAll, held, down, keys: KEYS };
 })();
