@@ -1,0 +1,62 @@
+name: Deploy web player
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check player files
+        run: |
+          for f in index.html index.js; do
+            if [ ! -f "web/$f" ]; then
+              echo "::error::web/$f is missing. Extract the EasyRPG web player archive into web/ (see README)."
+              exit 1
+            fi
+          done
+
+      - name: Generate index.json for each game
+        run: |
+          shopt -s nullglob
+          games=(web/games/*/)
+          if [ ${#games[@]} -eq 0 ]; then
+            echo "::error::No game folders found under web/games/"
+            exit 1
+          fi
+          for dir in "${games[@]}"; do
+            rm -f "$dir/.gitkeep"
+            python3 tools/gencache.py "$dir"
+          done
+
+      - name: Generate offline manifest
+        run: python3 tools/gen_offline_manifest.py web --version "${{ github.sha }}"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
